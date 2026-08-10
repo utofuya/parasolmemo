@@ -25,22 +25,23 @@
 
   if (!cards.length || !stage) return;
 
-  const rand = (min, max) => Math.random() * (max - min) + min;
+  const rand = (min, max) =>
+    Math.random() * (max - min) + min;
 
   function place() {
     const positions = [
-      [4, 8],
-      [24, 5],
-      [47, 10],
+      [3, 8],
+      [25, 4],
+      [48, 10],
       [69, 7],
-      [12, 32],
-      [35, 29],
-      [58, 31],
-      [79, 34],
-      [4, 59],
-      [25, 55],
-      [50, 58],
-      [72, 60]
+      [10, 31],
+      [34, 28],
+      [57, 30],
+      [76, 34],
+      [3, 59],
+      [26, 55],
+      [51, 57],
+      [72, 61]
     ];
 
     cards.forEach((card, i) => {
@@ -48,11 +49,11 @@
 
       const x = card.dataset.x !== ""
         ? Number(card.dataset.x)
-        : preset[0] + rand(-3, 3);
+        : preset[0] + rand(-2.5, 2.5);
 
       const y = card.dataset.y !== ""
         ? Number(card.dataset.y)
-        : preset[1] + rand(-3, 3);
+        : preset[1] + rand(-2.5, 2.5);
 
       const rotate = card.dataset.rotate !== ""
         ? Number(card.dataset.rotate)
@@ -62,61 +63,90 @@
         ? Number(card.dataset.z)
         : i + 1;
 
-      const width = Number(card.dataset.width) || rand(17, 22);
+      const width =
+        Number(card.dataset.width) || rand(21, 27);
 
-      card.style.width = `${width}vw`;
+      card.style.setProperty(
+        "--w",
+        `${width}vw`
+      );
+
+      card.style.setProperty(
+        "--mobile-w",
+        `${Math.min(84, Math.max(72, width * 3.05))}vw`
+      );
+
       card.style.left = `${x}%`;
       card.style.top = `${y}%`;
       card.style.zIndex = z;
-      card.style.transform = `rotate(${rotate}deg) scale(1)`;
+
+      card.style.transform =
+        `rotate(${rotate}deg) scale(1)`;
 
       card.dataset.baseRotate = rotate;
+
       card.classList.remove("is-active");
     });
   }
 
   place();
 
-  document.querySelectorAll(".window-close").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
+  document
+    .querySelectorAll(".window-close")
+    .forEach((button) => {
 
-      const card = button.closest(".window-card");
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
 
-      if (card) {
-        card.classList.toggle("is-closed");
-      }
-    });
-  });
+        const card =
+          button.closest(".window-card");
 
-  document.querySelectorAll("[data-target]").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-
-      const index = Number(button.dataset.target);
-      const card = cards[index];
-
-      if (!card) return;
-
-      cards.forEach((item) => {
-        item.classList.remove("is-active");
+        if (card) {
+          card.classList.toggle("is-closed");
+        }
       });
 
-      card.classList.remove("is-closed");
-      card.classList.add("is-active");
-
-      const rotate = Number(card.dataset.baseRotate || 0);
-
-      card.style.zIndex = 999;
-      card.style.transform =
-        `rotate(${rotate}deg) scale(1.12)`;
-
-      setTimeout(() => {
-        card.classList.remove("is-active");
-      }, 900);
     });
-  });
+
+  document
+    .querySelectorAll("[data-target]")
+    .forEach((button) => {
+
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+
+        const index =
+          Number(button.dataset.target);
+
+        const card = cards[index];
+
+        if (!card) return;
+
+        cards.forEach((item) => {
+          item.classList.remove("is-active");
+        });
+
+        card.classList.remove("is-closed");
+        card.classList.add("is-active");
+
+        const rotate =
+          Number(card.dataset.baseRotate || 0);
+
+        card.style.zIndex = 999;
+
+        card.style.transform =
+          `rotate(${rotate}deg) scale(3)`;
+
+        setTimeout(() => {
+          card.style.transform =
+            `rotate(${rotate}deg) scale(1)`;
+
+          card.classList.remove("is-active");
+        }, 1200);
+      });
+
+    });
 
   const shuffleButton =
     document.querySelector("[data-shuffle]");
@@ -126,4 +156,5 @@
       place();
     });
   }
+
 })();
