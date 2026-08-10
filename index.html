@@ -2,11 +2,14 @@
 layout: default
 title: Archive
 ---
+
 <section class="archive" aria-label="Personal photographic archive">
+
   <div class="brand-clock">
     <a class="site-logo" href="{{ '/' | relative_url }}" aria-label="PARASOL MEMO home">
       <img src="{{ '/assets/images/parasol-memo-logo.png' | relative_url }}" alt="PARASOL MEMO">
     </a>
+
     <div class="clock-block" aria-live="polite">
       <time id="clock">-- : -- : --</time>
       <span id="today">---- . -- . --</span>
@@ -20,6 +23,7 @@ title: Archive
 
   <div class="archive-stage" id="archiveStage">
     {% assign items = site.works | where: "published", true %}
+
     {% for item in items %}
       <article class="window-card"
         data-index="{{ forloop.index0 }}"
@@ -28,24 +32,34 @@ title: Archive
         data-y="{{ item.y | default: '' }}"
         data-rotate="{{ item.rotate | default: '' }}"
         data-z="{{ item.z | default: '' }}">
+
         <div class="window-bar">
           <span>{{ item.filename | default: item.title | upcase }}</span>
           <button type="button" class="window-close" aria-label="Close image">×</button>
         </div>
+
         <a href="{{ item.url | relative_url }}" class="window-image" aria-label="{{ item.title }}">
-          {% if item.image %}<img src="{{ item.image | relative_url }}" alt="{{ item.title }}" loading="lazy">{% endif %}
+          {% if item.image %}
+            <img src="{{ item.image | relative_url }}" alt="{{ item.title }}" loading="lazy">
+          {% endif %}
         </a>
-        {% if item.caption %}<div class="window-caption">{{ item.caption }}</div>{% endif %}
+
+        {% if item.caption %}
+          <div class="window-caption">{{ item.caption }}</div>
+        {% endif %}
       </article>
     {% endfor %}
   </div>
 
   <div class="archive-index" aria-label="Archive index">
     {% for item in items %}
-      <button type="button" data-target="{{ forloop.index0 }}">{{ forloop.index | prepend: "0" | slice: -2, 2 }}</button>
+      <button type="button" data-target="{{ forloop.index0 }}">
+        {{ forloop.index | prepend: "0" | slice: -2, 2 }}
+      </button>
     {% endfor %}
-    <button type="button" data-shuffle="true">+</button>
+    <button type="button" data-shuffle="true">↻</button>
   </div>
 
   <a class="scroll-arrow" href="#archiveStage" aria-label="Scroll">↓</a>
+
 </section>
