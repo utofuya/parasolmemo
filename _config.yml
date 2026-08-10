@@ -1,25 +1,18 @@
 title: PARASOL MEMO
-description: Personal film photography archive
-baseurl: ""
-url: ""
+
+baseurl: "/parasolmemo"
+url: "https://utofuya.github.io"
+
+markdown: kramdown
+
 collections:
   works:
     output: true
-    permalink: /work/:name/
+    permalink: /works/:name/
+
 defaults:
   - scope:
       path: ""
       type: works
     values:
       layout: work
-      published: true
-  - scope:
-      path: ""
-      type: posts
-    values:
-      layout: post
-      permalink: /journal/:year/:month/:day/:title/
-exclude:
-  - README.md
-  - Gemfile
-  - Gemfile.lock
