@@ -1,1 +1,129 @@
-(function(){const pad=n=>String(n).padStart(2,"0");function tick(){const d=new Date();const c=document.getElementById("clock"),t=document.getElementById("today");if(c)c.textContent=`${pad(d.getHours())} : ${pad(d.getMinutes())} : ${pad(d.getSeconds())}`;if(t)t.textContent=`${d.getFullYear()} . ${pad(d.getMonth()+1)} . ${pad(d.getDate())}`}tick();setInterval(tick,1000);const cards=[...document.querySelectorAll(".window-card")];const stage=document.getElementById("archiveStage");if(!cards.length)return;const rand=(a,b)=>Math.random()*(b-a)+a;function place(){cards.forEach((el,i)=>{const x=el.dataset.x!==""?Number(el.dataset.x):rand(5,82);const y=el.dataset.y!==""?Number(el.dataset.y):rand(12,72);const r=el.dataset.rotate!==""?Number(el.dataset.rotate):rand(-6,6);const z=el.dataset.z!==""?Number(el.dataset.z):10+i;const w=Number(el.dataset.width)||20;el.style.setProperty("--w",`${w}vw`);el.style.left=`${x}%`;el.style.top=`${y}%`;el.style.transform=`rotate(${r}deg)`;el.style.zIndex=z});}place();document.querySelectorAll(".window-close").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();btn.closest(".window-card").classList.toggle("is-closed")}));document.querySelectorAll("[data-target]").forEach(btn=>btn.addEventListener("click",()=>{const c=cards[Number(btn.dataset.target)];if(c){c.classList.remove("is-closed");c.scrollIntoView({behavior:"smooth",block:"center"})}}));document.querySelector("[data-shuffle]")?.addEventListener("click",place)})();
+(function () {
+  const pad = (n) => String(n).padStart(2, "0");
+
+  function tick() {
+    const d = new Date();
+    const clock = document.getElementById("clock");
+    const today = document.getElementById("today");
+
+    if (clock) {
+      clock.textContent =
+        `${pad(d.getHours())} : ${pad(d.getMinutes())} : ${pad(d.getSeconds())}`;
+    }
+
+    if (today) {
+      today.textContent =
+        `${d.getFullYear()} . ${pad(d.getMonth() + 1)} . ${pad(d.getDate())}`;
+    }
+  }
+
+  tick();
+  setInterval(tick, 1000);
+
+  const cards = [...document.querySelectorAll(".window-card")];
+  const stage = document.getElementById("archiveStage");
+
+  if (!cards.length || !stage) return;
+
+  const rand = (min, max) => Math.random() * (max - min) + min;
+
+  function place() {
+    const positions = [
+      [4, 8],
+      [24, 5],
+      [47, 10],
+      [69, 7],
+      [12, 32],
+      [35, 29],
+      [58, 31],
+      [79, 34],
+      [4, 59],
+      [25, 55],
+      [50, 58],
+      [72, 60]
+    ];
+
+    cards.forEach((card, i) => {
+      const preset = positions[i % positions.length];
+
+      const x = card.dataset.x !== ""
+        ? Number(card.dataset.x)
+        : preset[0] + rand(-3, 3);
+
+      const y = card.dataset.y !== ""
+        ? Number(card.dataset.y)
+        : preset[1] + rand(-3, 3);
+
+      const rotate = card.dataset.rotate !== ""
+        ? Number(card.dataset.rotate)
+        : rand(-5, 5);
+
+      const z = card.dataset.z !== ""
+        ? Number(card.dataset.z)
+        : i + 1;
+
+      const width = Number(card.dataset.width) || rand(17, 22);
+
+      card.style.width = `${width}vw`;
+      card.style.left = `${x}%`;
+      card.style.top = `${y}%`;
+      card.style.zIndex = z;
+      card.style.transform = `rotate(${rotate}deg) scale(1)`;
+
+      card.dataset.baseRotate = rotate;
+      card.classList.remove("is-active");
+    });
+  }
+
+  place();
+
+  document.querySelectorAll(".window-close").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const card = button.closest(".window-card");
+
+      if (card) {
+        card.classList.toggle("is-closed");
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-target]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+
+      const index = Number(button.dataset.target);
+      const card = cards[index];
+
+      if (!card) return;
+
+      cards.forEach((item) => {
+        item.classList.remove("is-active");
+      });
+
+      card.classList.remove("is-closed");
+      card.classList.add("is-active");
+
+      const rotate = Number(card.dataset.baseRotate || 0);
+
+      card.style.zIndex = 999;
+      card.style.transform =
+        `rotate(${rotate}deg) scale(1.12)`;
+
+      setTimeout(() => {
+        card.classList.remove("is-active");
+      }, 900);
+    });
+  });
+
+  const shuffleButton =
+    document.querySelector("[data-shuffle]");
+
+  if (shuffleButton) {
+    shuffleButton.addEventListener("click", () => {
+      place();
+    });
+  }
+})();
