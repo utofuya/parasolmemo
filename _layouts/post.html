@@ -1,0 +1,10 @@
+---
+layout: default
+---
+<main class="post-page">
+  <a class="back-link" href="{{ '/journal/' | relative_url }}">← JOURNAL</a>
+  <h1>{{ page.title }}</h1>
+  {% if page.image %}<img class="post-cover" src="{{ page.image | relative_url }}" alt="">{% endif %}
+  <div class="post-date">{{ page.date | date: "%Y . %m . %d" }}</div>
+  <article class="post-body">{{ content }}</article>
+</main>
