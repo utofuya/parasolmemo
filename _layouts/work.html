@@ -7,9 +7,9 @@ layout: default
   <figure class="detail-figure">
     {% if page.image %}<img src="{{ page.image | relative_url }}" alt="{{ page.title }}">{% endif %}
   </figure>
-  <section class="detail-copy">
-    {% if page.body %}{{ page.body | markdownify }}{% endif %}
-  </section>
+<section class="detail-copy">
+  {{ content }}
+</section>
   <nav class="detail-nav">
     {% assign works = site.works | where: "published", true %}
     {% assign current = page.url %}
