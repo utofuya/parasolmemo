@@ -354,3 +354,131 @@ button {
     font-size: 14px;
   }
 }
+
+/* =========================================
+   DETAIL PAGE
+   個人的なアーカイブとしての作品詳細ページ
+   ========================================= */
+
+.detail-page {
+  min-height: 100vh;
+  padding: 32px 4vw 70px;
+}
+
+.detail-page .back-link {
+  position: fixed;
+  left: 4vw;
+  top: 32px;
+  z-index: 20;
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+}
+
+.detail-count {
+  position: fixed;
+  right: 4vw;
+  top: 32px;
+  z-index: 20;
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+.detail-figure {
+  width: min(82vw, 1200px);
+  max-width: none;
+  margin: 90px auto 65px;
+  text-align: center;
+}
+
+.detail-figure img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 78vh;
+  height: auto;
+  margin: 0 auto;
+}
+
+.detail-copy {
+  width: min(520px, 82vw);
+  max-width: none;
+  margin: 0 auto;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+  font-size: 14px;
+  line-height: 2;
+  letter-spacing: .025em;
+}
+
+.detail-copy p {
+  margin: 0 0 1.8em;
+}
+
+.detail-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  margin-top: 70px;
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+.detail-nav a {
+  transition: opacity .2s ease;
+}
+
+.detail-nav a:hover {
+  opacity: .45;
+}
+
+.detail-nav span {
+  opacity: .65;
+}
+
+
+/* スマートフォン */
+
+@media (max-width: 700px) {
+
+  .detail-page {
+    padding: 24px 5vw 50px;
+  }
+
+  .detail-page .back-link {
+    left: 5vw;
+    top: 22px;
+    font-size: 10px;
+  }
+
+  .detail-count {
+    right: 5vw;
+    top: 22px;
+    font-size: 10px;
+  }
+
+  .detail-figure {
+    width: 90vw;
+    margin: 75px auto 48px;
+  }
+
+  .detail-figure img {
+    width: auto;
+    max-width: 90vw;
+    max-height: 72vh;
+  }
+
+  .detail-copy {
+    width: 84vw;
+    font-size: 13px;
+    line-height: 2;
+  }
+
+  .detail-nav {
+    margin-top: 55px;
+    gap: 20px;
+    font-size: 10px;
+  }
+}
