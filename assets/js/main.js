@@ -39,9 +39,7 @@
   const rand = (a, b) => Math.random() * (b - a) + a;
 
   /*
-   * 2つの矩形がどのくらい重なっているかを計算
-   * 0 = 重ならない
-   * 1 = 完全に重なる
+   * 2つの写真がどのくらい重なっているか
    */
   function overlapRatio(a, b) {
     const left = Math.max(a.left, b.left);
@@ -62,128 +60,202 @@
   }
 
   /*
-   * 1ページ分の写真を配置する
+   * 写真の矩形を作る
+   */
+  function makeRect(x, y, width, height) {
+    return {
+      left: x,
+      top: y,
+      right: x + width,
+      bottom: y + height,
+      width,
+      height
+    };
+  }
+
+  /*
+   * 指定位置があるか
+   */
+  function hasManualPosition(el) {
+    return (
+      el.dataset.x !== "" ||
+      el.dataset.y !== "" ||
+      el.dataset.rotate !== "" ||
+      el.dataset.z !== ""
+    );
+  }
+
+  /*
+   * 1ページ分の写真を配置
    */
   function placePage(pageCards, pageIndex, pageHeight) {
     const pageTop = pageIndex * pageHeight;
-
     const placed = [];
 
-    pageCards.forEach((el, i) => {
-      const w = Number(el.dataset.width) || (isMobile() ? 52 : 20);
+    /*
+     * まず「位置を指定している写真」を配置。
+     * 指定写真を先に置くことで、
+     * おまかせ写真がそれらを避けられるようにする。
+     */
+    const manualCards = pageCards.filter(hasManualPosition);
+    const autoCards = pageCards.filter(card => !hasManualPosition(card));
+
+    /*
+     * 手動指定
+     */
+    manualCards.forEach((el, i) => {
+      const w = Number(el.dataset.width) ||
+        (isMobile() ? 52 : 20);
 
       el.style.setProperty("--w", `${w}vw`);
-
-      /*
-       * いったん画面外に置いてサイズを確定させる
-       */
-      el.style.left = "0";
-      el.style.top = `${pageTop}px`;
-      el.style.transform = "rotate(0deg)";
-      el.style.zIndex = String(10 + i);
 
       const cardWidth = el.offsetWidth;
       const cardHeight = el.offsetHeight;
 
       /*
-       * 画面内に収めるための余白
+       * x / y は「画面に対する％」
        */
-      const marginX = isMobile() ? 4 : 3;
-      const marginY = isMobile() ? 8 : 6;
+      const xValue = el.dataset.x !== ""
+        ? Number(el.dataset.x)
+        : rand(5, 75);
+
+      const yValue = el.dataset.y !== ""
+        ? Number(el.dataset.y)
+        : rand(10, 70);
+
+      const x = window.innerWidth * xValue / 100;
+      const y = pageTop + pageHeight * yValue / 100;
+
+      const rotation = el.dataset.rotate !== ""
+        ? Number(el.dataset.rotate)
+        : 0;
+
+      const z = el.dataset.z !== ""
+        ? Number(el.dataset.z)
+        : 20 + i;
+
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.style.transform = `rotate(${rotation}deg)`;
+      el.style.zIndex = z;
+
+      placed.push({
+        el,
+        rect: makeRect(
+          x,
+          y,
+          cardWidth,
+          cardHeight
+        )
+      });
+    });
+
+    /*
+     * おまかせ写真
+     */
+    autoCards.forEach((el, i) => {
+      const w = Number(el.dataset.width) ||
+        (isMobile() ? 52 : 20);
+
+      el.style.setProperty("--w", `${w}vw`);
+
+      const cardWidth = el.offsetWidth;
+      const cardHeight = el.offsetHeight;
+
+      const marginX = isMobile() ? 4 : 4;
+      const marginY = isMobile() ? 8 : 8;
+
+      const minX =
+        window.innerWidth * marginX / 100;
 
       const maxX =
         Math.max(
-          marginX,
-          window.innerWidth - cardWidth - (window.innerWidth * marginX / 100)
+          minX,
+          window.innerWidth -
+          cardWidth -
+          window.innerWidth * marginX / 100
         );
+
+      const minY =
+        pageTop +
+        pageHeight * marginY / 100;
 
       const maxY =
         Math.max(
-          marginY,
-          pageHeight - cardHeight - (pageHeight * marginY / 100)
+          minY,
+          pageTop +
+          pageHeight -
+          cardHeight -
+          pageHeight * marginY / 100
         );
 
-      let chosen = null;
+      let best = null;
 
       /*
-       * 最大100回まで候補位置を試す。
-       * 重なり30％以下の場所を優先。
+       * できるだけ「空いている場所」を探す
        */
-      for (let attempt = 0; attempt < 100; attempt++) {
-        const x = rand(
-          window.innerWidth * marginX / 100,
-          maxX
-        );
-
-        const y = rand(
-          pageTop + pageHeight * marginY / 100,
-          pageTop + maxY
-        );
+      for (let attempt = 0; attempt < 180; attempt++) {
+        const x = rand(minX, maxX);
+        const y = rand(minY, maxY);
 
         const rotation = rand(
           isMobile() ? -4 : -6,
           isMobile() ? 4 : 6
         );
 
-        const candidate = {
-          left: x,
-          top: y,
-          right: x + cardWidth,
-          bottom: y + cardHeight,
-          width: cardWidth,
-          height: cardHeight
-        };
+        const rect = makeRect(
+          x,
+          y,
+          cardWidth,
+          cardHeight
+        );
 
-        /*
-         * 既に置いた写真との最大重なり率を調べる
-         */
         let worstOverlap = 0;
 
         placed.forEach(other => {
           worstOverlap = Math.max(
             worstOverlap,
-            overlapRatio(candidate, other.rect)
+            overlapRatio(rect, other.rect)
           );
         });
 
         /*
-         * 30％以下なら採用
+         * 30％以下なら即採用
          */
         if (worstOverlap <= 0.30) {
-          chosen = {
+          best = {
             x,
             y,
             rotation,
-            rect: candidate
+            rect,
+            score: worstOverlap
           };
           break;
         }
 
         /*
-         * 最後まで見つからなかった場合は、
-         * 重なりが一番少ない候補を採用するための保険
+         * それ以上なら、
+         * 一番重なりの少ない候補を記録
          */
-        if (!chosen || worstOverlap < chosen.overlap) {
-          chosen = {
+        if (!best || worstOverlap < best.score) {
+          best = {
             x,
             y,
             rotation,
-            rect: candidate,
-            overlap: worstOverlap
+            rect,
+            score: worstOverlap
           };
         }
       }
 
-      /*
-       * 配置
-       */
-      el.style.left = `${chosen.x}px`;
-      el.style.top = `${chosen.y}px`;
-      el.style.transform = `rotate(${chosen.rotation}deg)`;
+      el.style.left = `${best.x}px`;
+      el.style.top = `${best.y}px`;
+      el.style.transform = `rotate(${best.rotation}deg)`;
+      el.style.zIndex = String(10 + i);
 
       placed.push({
         el,
-        rect: chosen.rect
+        rect: best.rect
       });
     });
   }
@@ -194,26 +266,24 @@
   function place() {
     const perPage = cardsPerPage();
     const pageHeight = window.innerHeight;
-
     const pageCount = Math.ceil(cards.length / perPage);
 
-    stage.style.minHeight = `${pageCount * pageHeight}px`;
+    stage.style.minHeight =
+      `${pageCount * pageHeight}px`;
 
-    /*
-     * いったん全カードを表示
-     */
     cards.forEach(card => {
       card.style.display = "";
     });
 
     for (let page = 0; page < pageCount; page++) {
       const start = page * perPage;
-      const end = Math.min(start + perPage, cards.length);
-
-      const pageCards = cards.slice(start, end);
+      const end = Math.min(
+        start + perPage,
+        cards.length
+      );
 
       placePage(
-        pageCards,
+        cards.slice(start, end),
         page,
         pageHeight
       );
@@ -221,7 +291,7 @@
   }
 
   /*
-   * 写真を閉じるボタン
+   * 写真を閉じる
    */
   document.querySelectorAll(".window-close").forEach(btn => {
     btn.addEventListener("click", e => {
@@ -237,8 +307,7 @@
   });
 
   /*
-   * 左下の番号をクリックしたとき、
-   * その写真までスクロール
+   * 左下の番号
    */
   document.querySelectorAll("[data-target]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -265,7 +334,7 @@
   );
 
   /*
-   * ウィンドウサイズ変更時に再配置
+   * 画面サイズ変更
    */
   let resizeTimer;
 
@@ -278,18 +347,30 @@
   });
 
   /*
-   * 初回配置
-   * 画像の読み込み後にサイズを測る
+   * 画像読み込み後に配置
    */
-  const images = [...document.querySelectorAll(".window-card img")];
+  const images = [
+    ...document.querySelectorAll(".window-card img")
+  ];
 
   Promise.all(
     images.map(img => {
-      if (img.complete) return Promise.resolve();
+      if (img.complete) {
+        return Promise.resolve();
+      }
 
       return new Promise(resolve => {
-        img.addEventListener("load", resolve, { once: true });
-        img.addEventListener("error", resolve, { once: true });
+        img.addEventListener(
+          "load",
+          resolve,
+          { once: true }
+        );
+
+        img.addEventListener(
+          "error",
+          resolve,
+          { once: true }
+        );
       });
     })
   ).then(place);
