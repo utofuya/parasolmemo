@@ -1,18 +1,18 @@
 (function () {
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = n => String(n).padStart(2, "0");
 
   function tick() {
     const d = new Date();
-    const clock = document.getElementById("clock");
-    const today = document.getElementById("today");
+    const c = document.getElementById("clock");
+    const t = document.getElementById("today");
 
-    if (clock) {
-      clock.textContent =
+    if (c) {
+      c.textContent =
         `${pad(d.getHours())} : ${pad(d.getMinutes())} : ${pad(d.getSeconds())}`;
     }
 
-    if (today) {
-      today.textContent =
+    if (t) {
+      t.textContent =
         `${d.getFullYear()} . ${pad(d.getMonth() + 1)} . ${pad(d.getDate())}`;
     }
   }
@@ -25,240 +25,247 @@
 
   if (!cards.length || !stage) return;
 
-  const rand = (min, max) =>
-    Math.random() * (max - min) + min;
-
-  const isMobile = () =>
-    window.matchMedia("(max-width: 700px)").matches;
+  const isMobile = () => window.innerWidth <= 700;
 
   /*
-   * priority が設定されている作品を先にする。
-   * priority がない作品は自動的に後ろへ。
+   * 1画面に置く写真の最大数
+   * PC：11枚
+   * スマホ：3枚
    */
-  function priorityOf(card) {
-    const value = Number(card.dataset.priority);
-
-    if (Number.isFinite(value)) {
-      return value;
-    }
-
-    return 9999;
+  function cardsPerPage() {
+    return isMobile() ? 3 : 11;
   }
 
-  function orderedCards() {
-    return [...cards].sort((a, b) => {
-      const pa = priorityOf(a);
-      const pb = priorityOf(b);
-
-      if (pa !== pb) {
-        return pa - pb;
-      }
-
-      return cards.indexOf(a) - cards.indexOf(b);
-    });
-  }
+  const rand = (a, b) => Math.random() * (b - a) + a;
 
   /*
-   * PC
-   * --------------------------------
-   * 今まで通り、少しランダムで実験的な配置。
+   * 2つの矩形がどのくらい重なっているかを計算
+   * 0 = 重ならない
+   * 1 = 完全に重なる
    */
-  function placeDesktop() {
-    const positions = [
-      [4, 10],
-      [27, 5],
-      [51, 12],
-      [72, 8],
-      [10, 32],
-      [35, 29],
-      [59, 33],
-      [77, 37],
-      [4, 60],
-      [28, 57],
-      [52, 61],
-      [73, 64]
-    ];
+  function overlapRatio(a, b) {
+    const left = Math.max(a.left, b.left);
+    const right = Math.min(a.right, b.right);
+    const top = Math.max(a.top, b.top);
+    const bottom = Math.min(a.bottom, b.bottom);
 
-    const ordered = orderedCards();
+    if (right <= left || bottom <= top) return 0;
 
-    ordered.forEach((card, i) => {
-      const preset = positions[i % positions.length];
+    const intersection = (right - left) * (bottom - top);
+    const areaA = a.width * a.height;
+    const areaB = b.width * b.height;
+    const smaller = Math.min(areaA, areaB);
 
-      const x =
-        card.dataset.x !== ""
-          ? Number(card.dataset.x)
-          : preset[0] + rand(-2.5, 2.5);
+    if (!smaller) return 0;
 
-      const y =
-        card.dataset.y !== ""
-          ? Number(card.dataset.y)
-          : preset[1] + rand(-2.5, 2.5);
-
-      const rotate =
-        card.dataset.rotate !== ""
-          ? Number(card.dataset.rotate)
-          : rand(-5, 5);
-
-      const z =
-        card.dataset.z !== ""
-          ? Number(card.dataset.z)
-          : i + 1;
-
-      const width =
-        Number(card.dataset.width) || rand(21, 27);
-
-      card.style.setProperty(
-        "--w",
-        `${width}vw`
-      );
-
-      card.style.setProperty(
-        "--mobile-w",
-        `${Math.min(84, Math.max(72, width * 3.05))}vw`
-      );
-
-      card.style.left = `${x}%`;
-      card.style.top = `${y}%`;
-      card.style.zIndex = z;
-
-      card.style.transform =
-        `rotate(${rotate}deg) scale(1)`;
-
-      card.dataset.baseRotate = rotate;
-      card.classList.remove("is-active");
-    });
+    return intersection / smaller;
   }
 
   /*
-   * スマホ
-   * --------------------------------
-   * 写真を横に詰め込みすぎない。
-   *
-   * 1枚・2枚・3枚の組み合わせを
-   * 完全な規則にはせず、少しランダムにする。
+   * 1ページ分の写真を配置する
    */
-  function placeMobile() {
-    const ordered = orderedCards();
+  function placePage(pageCards, pageIndex, pageHeight) {
+    const pageTop = pageIndex * pageHeight;
 
-    const layouts = [
-      { count: 1, gap: 6 },
-      { count: 2, gap: 3 },
-      { count: 2, gap: 5 },
-      { count: 3, gap: 2 },
-      { count: 2, gap: 6 },
-      { count: 1, gap: 7 },
-      { count: 2, gap: 4 }
-    ];
+    const placed = [];
 
-    let cursor = 0;
-    let row = 0;
+    pageCards.forEach((el, i) => {
+      const w = Number(el.dataset.width) || (isMobile() ? 52 : 20);
 
-    while (cursor < ordered.length) {
-      const layout =
-        layouts[row % layouts.length];
+      el.style.setProperty("--w", `${w}vw`);
 
-      const remaining =
-        ordered.length - cursor;
+      /*
+       * いったん画面外に置いてサイズを確定させる
+       */
+      el.style.left = "0";
+      el.style.top = `${pageTop}px`;
+      el.style.transform = "rotate(0deg)";
+      el.style.zIndex = String(10 + i);
 
-      const count =
-        Math.min(layout.count, remaining);
+      const cardWidth = el.offsetWidth;
+      const cardHeight = el.offsetHeight;
 
-      const gap = layout.gap;
+      /*
+       * 画面内に収めるための余白
+       */
+      const marginX = isMobile() ? 4 : 3;
+      const marginY = isMobile() ? 8 : 6;
 
-      const rowTop =
-        5 + row * 18;
-
-      const usable =
-        100 - (gap * (count - 1)) - 8;
-
-      const itemWidth =
-        count === 1
-          ? Math.min(88, usable)
-          : usable / count;
-
-      for (let j = 0; j < count; j++) {
-        const card = ordered[cursor + j];
-
-        const manualWidth =
-          Number(card.dataset.width);
-
-        const width =
-          Number.isFinite(manualWidth) &&
-          manualWidth > 0
-            ? Math.min(88, Math.max(30, manualWidth * 3.4))
-            : itemWidth;
-
-        const centerOffset =
-          count === 1
-            ? (100 - width) / 2
-            : 4 + j * (usable / count);
-
-        const x =
-          count === 1
-            ? centerOffset
-            : centerOffset + rand(-1.5, 1.5);
-
-        const y =
-          rowTop + rand(-1.5, 1.5);
-
-        const rotate =
-          card.dataset.rotate !== ""
-            ? Number(card.dataset.rotate)
-            : rand(-3.5, 3.5);
-
-        /*
-         * 同じ行の写真が完全に重ならないようにする。
-         */
-        const z =
-          100 +
-          row * 10 +
-          j;
-
-        card.style.setProperty(
-          "--mobile-w",
-          `${width}vw`
+      const maxX =
+        Math.max(
+          marginX,
+          window.innerWidth - cardWidth - (window.innerWidth * marginX / 100)
         );
 
-        card.style.left =
-          `${Math.max(2, Math.min(x, 100 - width - 2))}%`;
+      const maxY =
+        Math.max(
+          marginY,
+          pageHeight - cardHeight - (pageHeight * marginY / 100)
+        );
 
-        card.style.top =
-          `${y}%`;
+      let chosen = null;
 
-        card.style.zIndex = z;
+      /*
+       * 最大100回まで候補位置を試す。
+       * 重なり30％以下の場所を優先。
+       */
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const x = rand(
+          window.innerWidth * marginX / 100,
+          maxX
+        );
 
-        card.style.transform =
-          `rotate(${rotate}deg) scale(1)`;
+        const y = rand(
+          pageTop + pageHeight * marginY / 100,
+          pageTop + maxY
+        );
 
-        card.dataset.baseRotate = rotate;
+        const rotation = rand(
+          isMobile() ? -4 : -6,
+          isMobile() ? 4 : 6
+        );
 
-        card.classList.remove("is-active");
+        const candidate = {
+          left: x,
+          top: y,
+          right: x + cardWidth,
+          bottom: y + cardHeight,
+          width: cardWidth,
+          height: cardHeight
+        };
+
+        /*
+         * 既に置いた写真との最大重なり率を調べる
+         */
+        let worstOverlap = 0;
+
+        placed.forEach(other => {
+          worstOverlap = Math.max(
+            worstOverlap,
+            overlapRatio(candidate, other.rect)
+          );
+        });
+
+        /*
+         * 30％以下なら採用
+         */
+        if (worstOverlap <= 0.30) {
+          chosen = {
+            x,
+            y,
+            rotation,
+            rect: candidate
+          };
+          break;
+        }
+
+        /*
+         * 最後まで見つからなかった場合は、
+         * 重なりが一番少ない候補を採用するための保険
+         */
+        if (!chosen || worstOverlap < chosen.overlap) {
+          chosen = {
+            x,
+            y,
+            rotation,
+            rect: candidate,
+            overlap: worstOverlap
+          };
+        }
       }
 
-      cursor += count;
-      row++;
-    }
+      /*
+       * 配置
+       */
+      el.style.left = `${chosen.x}px`;
+      el.style.top = `${chosen.y}px`;
+      el.style.transform = `rotate(${chosen.rotation}deg)`;
 
-    /*
-     * 写真の枚数が増えても、
-     * 画面の下が足りなくならないようにする。
-     */
-    stage.style.minHeight =
-      `${Math.max(150, row * 18 + 35)}vh`;
+      placed.push({
+        el,
+        rect: chosen.rect
+      });
+    });
   }
-
-  function place() {
-    if (isMobile()) {
-      placeMobile();
-    } else {
-      placeDesktop();
-    }
-  }
-
-  place();
 
   /*
-   * 画面サイズがPC ⇄ スマホで変わったときも再配置。
+   * 全写真をページ単位で配置
+   */
+  function place() {
+    const perPage = cardsPerPage();
+    const pageHeight = window.innerHeight;
+
+    const pageCount = Math.ceil(cards.length / perPage);
+
+    stage.style.minHeight = `${pageCount * pageHeight}px`;
+
+    /*
+     * いったん全カードを表示
+     */
+    cards.forEach(card => {
+      card.style.display = "";
+    });
+
+    for (let page = 0; page < pageCount; page++) {
+      const start = page * perPage;
+      const end = Math.min(start + perPage, cards.length);
+
+      const pageCards = cards.slice(start, end);
+
+      placePage(
+        pageCards,
+        page,
+        pageHeight
+      );
+    }
+  }
+
+  /*
+   * 写真を閉じるボタン
+   */
+  document.querySelectorAll(".window-close").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const card = btn.closest(".window-card");
+
+      if (card) {
+        card.classList.toggle("is-closed");
+      }
+    });
+  });
+
+  /*
+   * 左下の番号をクリックしたとき、
+   * その写真までスクロール
+   */
+  document.querySelectorAll("[data-target]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const index = Number(btn.dataset.target);
+      const card = cards[index];
+
+      if (!card) return;
+
+      card.classList.remove("is-closed");
+
+      card.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    });
+  });
+
+  /*
+   * Shuffle
+   */
+  document.querySelector("[data-shuffle]")?.addEventListener(
+    "click",
+    place
+  );
+
+  /*
+   * ウィンドウサイズ変更時に再配置
    */
   let resizeTimer;
 
@@ -267,79 +274,23 @@
 
     resizeTimer = setTimeout(() => {
       place();
-    }, 150);
+    }, 200);
   });
 
   /*
-   * 閉じるボタン
+   * 初回配置
+   * 画像の読み込み後にサイズを測る
    */
-  document
-    .querySelectorAll(".window-close")
-    .forEach((button) => {
-      button.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
+  const images = [...document.querySelectorAll(".window-card img")];
 
-        const card =
-          button.closest(".window-card");
+  Promise.all(
+    images.map(img => {
+      if (img.complete) return Promise.resolve();
 
-        if (card) {
-          card.classList.toggle("is-closed");
-        }
+      return new Promise(resolve => {
+        img.addEventListener("load", resolve, { once: true });
+        img.addEventListener("error", resolve, { once: true });
       });
-    });
-
-  /*
-   * 左下の番号
-   *
-   * クリックした写真を最前面へ。
-   */
-  document
-    .querySelectorAll("[data-target]")
-    .forEach((button) => {
-      button.addEventListener("click", (event) => {
-        event.preventDefault();
-
-        const index =
-          Number(button.dataset.target);
-
-        const card = cards[index];
-
-        if (!card) return;
-
-        cards.forEach((item) => {
-          item.classList.remove("is-active");
-        });
-
-        card.classList.remove("is-closed");
-        card.classList.add("is-active");
-
-        const rotate =
-          Number(card.dataset.baseRotate || 0);
-
-        card.style.zIndex = 999;
-
-        card.style.transform =
-          `rotate(${rotate}deg) scale(3)`;
-
-        setTimeout(() => {
-          card.style.transform =
-            `rotate(${rotate}deg) scale(1)`;
-
-          card.classList.remove("is-active");
-        }, 1200);
-      });
-    });
-
-  /*
-   * シャッフル
-   */
-  const shuffleButton =
-    document.querySelector("[data-shuffle]");
-
-  if (shuffleButton) {
-    shuffleButton.addEventListener("click", () => {
-      place();
-    });
-  }
+    })
+  ).then(place);
 })();
