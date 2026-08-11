@@ -105,7 +105,7 @@
      */
     manualCards.forEach((el, i) => {
       const w = Number(el.dataset.width) ||
-        (isMobile() ? 52 : 20);
+        (isMobile() ? 42 : 20);
 
       el.style.setProperty("--w", `${w}vw`);
 
